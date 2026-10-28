@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.pedro;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.revhub.drivetrains.MecanumConfig;
+import com.pedropathing.revhub.localizers.PinpointConfig;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
@@ -17,6 +18,9 @@ public class Constants {
         c.backLeftDirection.set(DcMotorSimple.Direction.FORWARD);
         c.backRightDirection.set(DcMotorSimple.Direction.REVERSE);
     });
+    public static PinpointConfig localizerConfig;
+
+
 
     public static Follower create(HardwareMap h) {
 

@@ -4,8 +4,7 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c3c41bd7-7d8e-4845-8039-7a2273b06f3e" name="Changes" comment="added maven, changed minor errors">
-      <change beforePath="$PROJECT_DIR$/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedro/Constants.java" beforeDir="false" afterPath="$PROJECT_DIR$/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedro/Constants.java" afterDir="false" />
+    <list default="true" id="c3c41bd7-7d8e-4845-8039-7a2273b06f3e" name="Changes" comment="did pinpoint i think">
       <change beforePath="$PROJECT_DIR$/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedro/Tuning.java" beforeDir="false" afterPath="$PROJECT_DIR$/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedro/Tuning.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -159,7 +158,15 @@
       <option name="project" value="LOCAL" />
       <updated>1793166741932</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="did pinpoint i think">
+      <option name="closed" value="true" />
+      <created>1793169374000</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1793169374000</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -176,6 +183,7 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="commit" />
     <MESSAGE value="added maven, changed minor errors" />
-    <option name="LAST_COMMIT_MESSAGE" value="added maven, changed minor errors" />
+    <MESSAGE value="did pinpoint i think" />
+    <option name="LAST_COMMIT_MESSAGE" value="did pinpoint i think" />
   </component>
 </project>
