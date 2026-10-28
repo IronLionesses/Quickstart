@@ -1,16 +1,17 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.bylazar.configurables.annotations.Configurable;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
 @Configurable
+@TeleOp
 public class Blocker {
 
     public static double BLOCKER_OPEN_POSITION = 0.0;
     public static double BLOCKER_CLOSED_POSITION = 0.4;
     private final Servo blockerServo;
-    //this is a comment so I can commit
 
     public Blocker(HardwareMap hardwareMap) {
         blockerServo = hardwareMap.get(Servo.class, "blockerServo");

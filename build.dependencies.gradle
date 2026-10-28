@@ -17,6 +17,7 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.2.0'
     implementation "com.bylazar:docs:1.0.9"
     implementation "com.bylazar:fullpanels:1.0.18"
+    implementation "com.bylazar:fullpanels:1.0.18"
 
     implementation 'com.pedropathing:revhub:3.0.2'
     implementation 'com.pedropathing:tuning:1.0.1'
