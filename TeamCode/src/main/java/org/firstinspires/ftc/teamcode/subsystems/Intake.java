@@ -1,14 +1,10 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.bylazar.configurables.annotations.Configurable;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.DcMotor;
-
 @Configurable
-@TeleOp
-
 public class Intake {
 
     public static double INTAKE_POWER = 1.0;
@@ -16,7 +12,6 @@ public class Intake {
     public static double FEED_POWER = 0.7;
     private final DcMotor intakeMotor;
     private final DcMotor intakeMotor1;
-
 
     public Intake(HardwareMap hardwareMap){
         intakeMotor = hardwareMap.get(DcMotor.class, "intakeMotor");

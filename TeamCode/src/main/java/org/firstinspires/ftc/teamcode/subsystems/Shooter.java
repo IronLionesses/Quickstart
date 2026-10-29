@@ -1,108 +1,106 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.bylazar.configurables.annotations.Configurable;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.VoltageSensor;
 
 @Configurable
-@TeleOp
 public class Shooter {
 
     // =========================================================
-    // SHOOTING SETTINGS
+    // SHOOTING
     // =========================================================
 
-    // Shooter wheel RPM, not motor RPM.
-    public static double TARGET_RPM = 2800.0;
-
-    // Approximate power required to maintain TARGET_RPM.
-    public static double BASE_POWER = 0.70;
-
-    // Shooting proportional gain.
-    public static double KP = 0.0006;
-
+    public static double SHOOT_RPM = 2800.0;
 
     // =========================================================
-    // IDLE SETTINGS
+    // IDLE
     // =========================================================
 
-    // Shooter wheel RPM while idling.
     public static double IDLE_RPM = 1000.0;
 
-    // Approximate power required to maintain IDLE_RPM.
-    public static double IDLE_BASE_POWER = 0.25;
-
-    // Idle proportional gain.
-    public static double IDLE_KP = 0.00010;
-
-
     // =========================================================
-    // ENCODER AND GEARING
+    // CONTROLLER
     // =========================================================
 
-    // Encoder ticks per motor revolution.
+    public static double KF = 0.00025;
+
+    public static double KP = 0.00015;
+
+    // =========================================================
+    // GEARING
+    // =========================================================
+
     public static double TICKS_PER_REV = 28.0;
 
-    /*
-     * shooterWheelRPM = motorRPM * GEAR_RATIO
-     *
-     * Direct drive:
-     * GEAR_RATIO = 1.0
-     *
-     * 10-tooth motor sprocket driving a 14-tooth shooter sprocket:
-     * GEAR_RATIO = 10.0 / 14.0
-     */
-    public static double GEAR_RATIO = 1.0;
-
+    public static double MOTOR_TO_WHEEL_RATIO =
+            1.0;
 
     // =========================================================
-    // READY SETTINGS
+    // POWER LIMIT
     // =========================================================
 
-    public static double READY_TOLERANCE_RPM = 500.0;
+    public static double MAX_POWER = 1.0;
 
-    public static double READY_SETTLE_TIME_MS = 200.0;
+    // =========================================================
+    // VOLTAGE COMPENSATION
+    // =========================================================
 
+    public static double NOMINAL_VOLTAGE = 13.0;
+
+    public static double MIN_COMPENSATION_VOLTAGE = 11.0;
 
     // =========================================================
     // MOTOR
     // =========================================================
 
+    private final HardwareMap hardwareMap;
+
     private final DcMotorEx shooterMotor;
 
-
     // =========================================================
-    // SHOOTER MODE
+    // MODE
     // =========================================================
 
-    private enum ShooterMode {
+    public enum Mode {
         OFF,
         IDLE,
         SHOOTING
     }
 
-    private ShooterMode mode = ShooterMode.OFF;
-
+    private Mode mode = Mode.OFF;
 
     // =========================================================
-    // CONTROL STATE
+    // CACHED TELEMETRY
     // =========================================================
 
-    private double activeTargetRPM = 0.0;
-    private double measuredRPM = 0.0;
-    private double errorRPM = 0.0;
-    private double commandedPower = 0.0;
+    private double batteryVoltage =
+            NOMINAL_VOLTAGE;
 
-    private long readySinceNanos = 0L;
+    private double voltageCompensation =
+            1.0;
 
+    private double currentRPM =
+            0.0;
+
+    private double targetRPM =
+            0.0;
+
+    private double errorRPM =
+            0.0;
+
+    private double commandedPower =
+            0.0;
 
     // =========================================================
     // CONSTRUCTOR
     // =========================================================
 
     public Shooter(HardwareMap hardwareMap) {
+
+        this.hardwareMap = hardwareMap;
 
         shooterMotor = hardwareMap.get(
                 DcMotorEx.class,
@@ -118,204 +116,136 @@ public class Shooter {
         );
 
         shooterMotor.setMode(
-                DcMotor.RunMode.STOP_AND_RESET_ENCODER
-        );
-
-        shooterMotor.setMode(
                 DcMotor.RunMode.RUN_WITHOUT_ENCODER
         );
 
         shooterOff();
     }
 
-
     // =========================================================
     // UPDATE
     // =========================================================
 
-    /**
-     * Call once during every control loop after selecting the
-     * desired shooter mode.
-     */
     public void update() {
 
-        // Read the shooter RPM once per loop.
-        measuredRPM = readRPM();
+        batteryVoltage =
+                readBatteryVoltage();
 
-        // -----------------------------------------------------
-        // OFF
-        // -----------------------------------------------------
+        voltageCompensation =
+                NOMINAL_VOLTAGE
+                        / Math.max(
+                        MIN_COMPENSATION_VOLTAGE,
+                        batteryVoltage
+                );
 
-        if (mode == ShooterMode.OFF) {
+        currentRPM =
+                readRPM();
 
-            activeTargetRPM = 0.0;
+        if (mode == Mode.OFF) {
+
+            targetRPM = 0.0;
             errorRPM = 0.0;
             commandedPower = 0.0;
 
             shooterMotor.setPower(0.0);
 
-            resetReadyTimer();
             return;
         }
 
-        // -----------------------------------------------------
-        // SELECT MODE PARAMETERS
-        // -----------------------------------------------------
-
-        double selectedBasePower;
-        double selectedKP;
-
-        if (mode == ShooterMode.SHOOTING) {
-
-            activeTargetRPM = TARGET_RPM;
-            selectedBasePower = BASE_POWER;
-            selectedKP = KP;
-
-        } else {
-
-            activeTargetRPM = IDLE_RPM;
-            selectedBasePower = IDLE_BASE_POWER;
-            selectedKP = IDLE_KP;
-        }
-
-        // -----------------------------------------------------
-        // CALCULATE ERROR
-        // -----------------------------------------------------
+        targetRPM =
+                (mode == Mode.SHOOTING)
+                        ? SHOOT_RPM
+                        : IDLE_RPM;
 
         errorRPM =
-                activeTargetRPM
-                        - measuredRPM;
+                targetRPM - currentRPM;
 
-        // -----------------------------------------------------
-        // CALCULATE POWER
-        // -----------------------------------------------------
+        commandedPower =
+                calculatePower(
+                        targetRPM,
+                        currentRPM
+                );
 
-        commandedPower = calculatePower(
-                activeTargetRPM,
-                measuredRPM,
-                selectedBasePower,
-                selectedKP
+        shooterMotor.setPower(
+                commandedPower
         );
-
-        // -----------------------------------------------------
-        // APPLY POWER
-        // -----------------------------------------------------
-
-        shooterMotor.setPower(commandedPower);
     }
 
-
     // =========================================================
-    // P CONTROLLER
+    // CONTROLLER
     // =========================================================
 
     private double calculatePower(
             double targetRPM,
-            double currentRPM,
-            double basePower,
-            double kP
+            double measuredRPM
     ) {
 
         if (targetRPM <= 0.0) {
             return 0.0;
         }
 
-        double currentErrorRPM =
-                targetRPM
-                        - currentRPM;
+        double error =
+                targetRPM - measuredRPM;
 
-        double proportionalCorrection =
-                currentErrorRPM
-                        * kP;
+        double power =
+                (
+                        targetRPM * KF
+                                + error * KP
+                )
+                        * voltageCompensation;
 
-        return clipPower(
-                basePower
-                        + proportionalCorrection
+        return clip(
+                power,
+                MAX_POWER
         );
     }
 
-
     // =========================================================
-    // SHOOTER ON
+    // VOLTAGE
     // =========================================================
 
-    public void shooterOn() {
+    private double readBatteryVoltage() {
 
-        if (mode != ShooterMode.SHOOTING) {
-            resetReadyTimer();
+        double highestVoltage = 0.0;
+
+        for (VoltageSensor sensor
+                : hardwareMap.voltageSensor) {
+
+            double voltage =
+                    sensor.getVoltage();
+
+            if (voltage > 0.0
+                    && Double.isFinite(voltage)) {
+
+                highestVoltage =
+                        Math.max(
+                                highestVoltage,
+                                voltage
+                        );
+            }
         }
 
-        mode = ShooterMode.SHOOTING;
+        return highestVoltage > 0.0
+                ? highestVoltage
+                : NOMINAL_VOLTAGE;
     }
 
-
     // =========================================================
-    // SHOOTER IDLE
-    // =========================================================
-
-    public void shooterIdle() {
-
-        if (mode != ShooterMode.IDLE) {
-            resetReadyTimer();
-        }
-
-        mode = ShooterMode.IDLE;
-    }
-
-
-    // =========================================================
-    // SHOOTER OFF
-    // =========================================================
-
-    public void shooterOff() {
-
-        mode = ShooterMode.OFF;
-
-        activeTargetRPM = 0.0;
-        measuredRPM = 0.0;
-        errorRPM = 0.0;
-        commandedPower = 0.0;
-
-        shooterMotor.setPower(0.0);
-
-        resetReadyTimer();
-    }
-
-
-    // =========================================================
-    // RPM READING
+    // RPM
     // =========================================================
 
     private double readRPM() {
+
+        if (TICKS_PER_REV <= 0.0
+                || MOTOR_TO_WHEEL_RATIO <= 0.0) {
+
+            return 0.0;
+        }
 
         double ticksPerSecond =
                 Math.abs(
                         shooterMotor.getVelocity()
                 );
-
-        return ticksPerSecondToWheelRPM(
-                ticksPerSecond,
-                GEAR_RATIO
-        );
-    }
-
-
-    // =========================================================
-    // RPM CONVERSION
-    // =========================================================
-
-    private double ticksPerSecondToWheelRPM(
-            double ticksPerSecond,
-            double gearRatio
-    ) {
-
-        if (TICKS_PER_REV <= 0.0) {
-            return 0.0;
-        }
-
-        if (gearRatio <= 0.0) {
-            return 0.0;
-        }
 
         double motorRPM =
                 ticksPerSecond
@@ -323,205 +253,102 @@ public class Shooter {
                         / TICKS_PER_REV;
 
         return motorRPM
-                * gearRatio;
+                * MOTOR_TO_WHEEL_RATIO;
     }
 
-
     // =========================================================
-    // READY CHECK
+    // MODES
     // =========================================================
 
-    /**
-     * Checks whether the supplied RPM is currently within the
-     * shooting tolerance.
-     */
-    public boolean isReady(double rpm) {
-
-        if (mode != ShooterMode.SHOOTING) {
-            return false;
-        }
-
-        double absoluteErrorRPM =
-                Math.abs(
-                        TARGET_RPM
-                                - rpm
-                );
-
-        return absoluteErrorRPM
-                <= READY_TOLERANCE_RPM;
+    public void shooterOn() {
+        mode = Mode.SHOOTING;
     }
 
-
-    /**
-     * Checks whether the most recently measured RPM is currently
-     * within the shooting tolerance.
-     */
-    public boolean isReady() {
-        return isReady(measuredRPM);
+    public void shooterIdle() {
+        mode = Mode.IDLE;
     }
 
+    public void shooterOff() {
 
-    // =========================================================
-    // SHOOTER READY
-    // =========================================================
+        mode = Mode.OFF;
 
-    /**
-     * Returns true once the shooter has remained within the ready
-     * tolerance continuously for READY_SETTLE_TIME_MS.
-     */
-    public boolean shooterReady() {
+        targetRPM = 0.0;
+        errorRPM = 0.0;
+        commandedPower = 0.0;
 
-        if (mode != ShooterMode.SHOOTING) {
-
-            resetReadyTimer();
-            return false;
-        }
-
-        if (!isReady(measuredRPM)) {
-
-            resetReadyTimer();
-            return false;
-        }
-
-        if (readySinceNanos == 0L) {
-
-            readySinceNanos =
-                    System.nanoTime();
-
-            return false;
-        }
-
-        double stableTimeMilliseconds =
-                (System.nanoTime()
-                        - readySinceNanos)
-                        / 1_000_000.0;
-
-        return stableTimeMilliseconds
-                >= READY_SETTLE_TIME_MS;
+        shooterMotor.setPower(0.0);
     }
 
-
     // =========================================================
-    // RESET READY TIMER
-    // =========================================================
-
-    private void resetReadyTimer() {
-        readySinceNanos = 0L;
-    }
-
-
-    // =========================================================
-    // MODE GETTERS
+    // GETTERS
     // =========================================================
 
-    public boolean isShooting() {
-        return mode == ShooterMode.SHOOTING;
+    public Mode getMode() {
+        return mode;
     }
-
-
-    public boolean isIdle() {
-        return mode == ShooterMode.IDLE;
-    }
-
-
-    public boolean isOff() {
-        return mode == ShooterMode.OFF;
-    }
-
 
     public String getModeName() {
         return mode.name();
     }
 
+    public boolean isShooting() {
+        return mode == Mode.SHOOTING;
+    }
 
-    // =========================================================
-    // RPM GETTERS
-    // =========================================================
+    public boolean isIdle() {
+        return mode == Mode.IDLE;
+    }
 
-    /**
-     * Returns the shooter wheel RPM captured during the most
-     * recent update().
-     */
+    public boolean isOff() {
+        return mode == Mode.OFF;
+    }
+
     public double getRPM() {
-        return measuredRPM;
+        return currentRPM;
     }
 
-
-    /**
-     * Returns the active shooter wheel target RPM.
-     */
     public double getTargetRPM() {
-        return activeTargetRPM;
+        return targetRPM;
     }
 
-
-    /**
-     * Returns the current target minus measured RPM error.
-     */
     public double getErrorRPM() {
         return errorRPM;
     }
-
-
-    // =========================================================
-    // POWER GETTER
-    // =========================================================
 
     public double getCommandedPower() {
         return commandedPower;
     }
 
-
-    // =========================================================
-    // RAW ENCODER VELOCITY
-    // =========================================================
-
-    /**
-     * Returns the current raw encoder velocity in ticks per second.
-     *
-     * This performs a new hardware read.
-     */
-    public double getTicksPerSecond() {
-
-        return Math.abs(
-                shooterMotor.getVelocity()
-        );
+    public double getBatteryVoltage() {
+        return batteryVoltage;
     }
 
-
-    // =========================================================
-    // MOTOR RPM
-    // =========================================================
-
-    /**
-     * Returns motor shaft RPM before applying GEAR_RATIO.
-     *
-     * This performs a new hardware read.
-     */
-    public double getMotorRPM() {
-
-        if (TICKS_PER_REV <= 0.0) {
-            return 0.0;
-        }
-
-        return Math.abs(
-                shooterMotor.getVelocity()
-        )
-                * 60.0
-                / TICKS_PER_REV;
+    public double getVoltageCompensation() {
+        return voltageCompensation;
     }
 
-
     // =========================================================
-    // POWER CLIPPING
+    // POWER LIMITING
     // =========================================================
 
-    private double clipPower(double power) {
+    private double clip(
+            double power,
+            double maximumPower
+    ) {
+
+        double max =
+                Math.max(
+                        0.0,
+                        Math.min(
+                                1.0,
+                                maximumPower
+                        )
+                );
 
         return Math.max(
                 0.0,
                 Math.min(
-                        1.0,
+                        max,
                         power
                 )
         );

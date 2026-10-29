@@ -116,8 +116,6 @@ public class CompetitionTeleOp extends LinearOpMode {
                         reverseRequested
                 );
 
-                intake.update();
-
                 updateTelemetry(
                         precisionFire,
                         rapidFire
@@ -155,8 +153,7 @@ public class CompetitionTeleOp extends LinearOpMode {
 
         shooter.shooterOff();
 
-        intake.offMode();
-        intake.update();
+        intake.intakeOff();
 
         blocker.closeBlocker();
 
@@ -184,14 +181,13 @@ public class CompetitionTeleOp extends LinearOpMode {
         telemetry.addData(
                 "Shoot / Idle",
                 "%.0f / %.0f RPM",
-                Shooter.SHOOT_RPM,
                 Shooter.IDLE_RPM
         );
 
         telemetry.addData(
                 "KF / KP",
                 "%.7f / %.7f",
-                Shooter.KF,
+                Shooter.,
                 Shooter.KP
         );
 
