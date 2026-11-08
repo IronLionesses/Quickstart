@@ -14,7 +14,7 @@ public class shooterTest extends LinearOpMode {
     // Target shooter speed (RPM)
     private static final double SHOOTER_RPM = 3000;
 
-    // Replace with your motor's encoder ticks per revolution
+    // Replace with motor's encoder ticks per revolution
     private static final double TICKS_PER_REV = 28;
 
     @Override
@@ -22,7 +22,7 @@ public class shooterTest extends LinearOpMode {
 
         // Connect shooter motor
         shooter = hardwareMap.get(
-                DcMotorEx.class, "shooter"
+                DcMotorEx.class, "shooterTest"
         );
 
         shooter.setDirection(DcMotor.Direction.FORWARD);
