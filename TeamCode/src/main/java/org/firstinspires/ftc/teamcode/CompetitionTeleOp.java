@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.teleOP;
+package org.firstinspires.ftc.teamcode;
 
 import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.drivetrain.DrivePowers;
@@ -22,13 +22,6 @@ import java.util.List;
 public class CompetitionTeleOp extends LinearOpMode {
 
     // =========================================================
-    // PRECISION FEED SETTINGS
-    // =========================================================
-
-    public static long FEED_PULSE_TIME_MS = 100;
-    public static long FEED_RECOVERY_TIME_MS = 250;
-
-    // =========================================================
     // SUBSYSTEMS
     // =========================================================
 
@@ -41,20 +34,7 @@ public class CompetitionTeleOp extends LinearOpMode {
     private List<LynxModule> hubs;
 
     // =========================================================
-    // PRECISION FEED STATE
-    // =========================================================
-
-    private enum FeedState {
-        IDLE,
-        FEEDING,
-        RECOVERING
-    }
-
-    private FeedState feedState = FeedState.IDLE;
-    private long feedStateStartNanos = 0L;
-
-    // =========================================================
-    // RUN OPMODE
+    // RUN OpMODE
     // =========================================================
 
     @Override
@@ -71,18 +51,15 @@ public class CompetitionTeleOp extends LinearOpMode {
                 return;
             }
 
-            shooter.shooterIdle();
-            resetFeedSequence();
+            // Shooter spins at firing speed for the whole match
+            shooter.shooterOn();
 
             while (opModeIsActive()) {
 
                 clearBulkCache();
 
-                boolean precisionFire =
-                        gamepad1.right_trigger > 0.5;
-
-                boolean rapidFire =
-                        gamepad1.left_trigger > 0.5;
+                boolean fire =
+                        gamepad1.right_trigger_pressed;
 
                 boolean intakeRequested =
                         gamepad1.right_bumper;
@@ -93,33 +70,30 @@ public class CompetitionTeleOp extends LinearOpMode {
                 boolean shooterOnRequested =
                         gamepad1.cross;
 
-                boolean shooterIdleRequested =
+                boolean shooterOffRequested =
                         gamepad1.circle;
 
                 updateDrive();
 
                 updateShooterMode(
-                        precisionFire,
-                        rapidFire,
-                        intakeRequested,
-                        reverseRequested,
+                        fire,
                         shooterOnRequested,
-                        shooterIdleRequested
+                        shooterOffRequested
                 );
 
                 shooter.update();
 
                 updateIntakeAndBlocker(
-                        precisionFire,
-                        rapidFire,
+                        fire,
                         intakeRequested,
                         reverseRequested
                 );
 
-                updateTelemetry(
-                        precisionFire,
-                        rapidFire
-                );
+                // Intake only applies motor power in update(),
+                // so this must run every loop.
+                intake.update();
+
+                updateTelemetry(fire);
             }
 
         } finally {
@@ -153,11 +127,10 @@ public class CompetitionTeleOp extends LinearOpMode {
 
         shooter.shooterOff();
 
-        intake.intakeOff();
+        intake.offMode();
+        intake.update();
 
         blocker.closeBlocker();
-
-        resetFeedSequence();
     }
 
     // =========================================================
@@ -169,25 +142,24 @@ public class CompetitionTeleOp extends LinearOpMode {
         telemetry.addLine("ROBOT READY");
         telemetry.addLine();
 
-        telemetry.addLine("Cross / A: Shooter ON");
-        telemetry.addLine("Circle / B: Shooter IDLE");
-        telemetry.addLine("Right Trigger: Precision Fire");
-        telemetry.addLine("Left Trigger: Rapid Fire");
+        telemetry.addLine("Cross / A: Shooter ON (default)");
+        telemetry.addLine("Circle / B: Shooter OFF");
+        telemetry.addLine("Right Trigger: Fire");
         telemetry.addLine("Right Bumper: Intake");
         telemetry.addLine("Left Bumper: Reverse Intake");
 
         telemetry.addLine();
 
         telemetry.addData(
-                "Shoot / Idle",
-                "%.0f / %.0f RPM",
-                Shooter.IDLE_RPM
+                "Shoot RPM",
+                "%.0f",
+                Shooter.SHOOT_RPM
         );
 
         telemetry.addData(
                 "KF / KP",
                 "%.7f / %.7f",
-                Shooter.,
+                Shooter.KF,
                 Shooter.KP
         );
 
@@ -195,18 +167,6 @@ public class CompetitionTeleOp extends LinearOpMode {
                 "Motor to wheel ratio",
                 "%.4f",
                 Shooter.MOTOR_TO_WHEEL_RATIO
-        );
-
-        telemetry.addData(
-                "Precision pulse",
-                "%d ms",
-                FEED_PULSE_TIME_MS
-        );
-
-        telemetry.addData(
-                "Precision recovery",
-                "%d ms",
-                FEED_RECOVERY_TIME_MS
         );
 
         telemetry.update();
@@ -260,25 +220,18 @@ public class CompetitionTeleOp extends LinearOpMode {
     // =========================================================
 
     private void updateShooterMode(
-            boolean precisionFire,
-            boolean rapidFire,
-            boolean intakeRequested,
-            boolean reverseRequested,
+            boolean fire,
             boolean shooterOnRequested,
-            boolean shooterIdleRequested
+            boolean shooterOffRequested
     ) {
 
-        if (precisionFire
-                || rapidFire
-                || shooterOnRequested) {
+        if (fire || shooterOnRequested) {
 
             shooter.shooterOn();
 
-        } else if (shooterIdleRequested
-                || intakeRequested
-                || reverseRequested) {
+        } else if (shooterOffRequested) {
 
-            shooter.shooterIdle();
+            shooter.shooterOff();
         }
     }
 
@@ -287,15 +240,12 @@ public class CompetitionTeleOp extends LinearOpMode {
     // =========================================================
 
     private void updateIntakeAndBlocker(
-            boolean precisionFire,
-            boolean rapidFire,
+            boolean fire,
             boolean intakeRequested,
             boolean reverseRequested
     ) {
 
-        if (rapidFire) {
-
-            resetFeedSequence();
+        if (fire) {
 
             blocker.openBlocker();
             intake.rapidFireMode();
@@ -303,25 +253,6 @@ public class CompetitionTeleOp extends LinearOpMode {
             return;
         }
 
-        if (precisionFire) {
-
-            updatePrecisionFeed();
-
-            if (feedState == FeedState.FEEDING) {
-
-                blocker.openBlocker();
-                intake.feedMode();
-
-            } else {
-
-                blocker.closeBlocker();
-                intake.offMode();
-            }
-
-            return;
-        }
-
-        resetFeedSequence();
         blocker.closeBlocker();
 
         if (intakeRequested) {
@@ -339,119 +270,12 @@ public class CompetitionTeleOp extends LinearOpMode {
     }
 
     // =========================================================
-    // PRECISION FEED CONTROL
-    // =========================================================
-
-    private void updatePrecisionFeed() {
-
-        switch (feedState) {
-
-            case IDLE:
-
-                setFeedState(
-                        FeedState.FEEDING
-                );
-
-                break;
-
-            case FEEDING:
-
-                if (getFeedStateElapsedMs()
-                        >= getSafeFeedPulseTimeMs()) {
-
-                    setFeedState(
-                            FeedState.RECOVERING
-                    );
-                }
-
-                break;
-
-            case RECOVERING:
-
-                if (getFeedStateElapsedMs()
-                        >= getSafeRecoveryTimeMs()) {
-
-                    setFeedState(
-                            FeedState.FEEDING
-                    );
-                }
-
-                break;
-
-            default:
-
-                resetFeedSequence();
-                break;
-        }
-    }
-
-    private void setFeedState(
-            FeedState newState
-    ) {
-
-        if (feedState == newState) {
-            return;
-        }
-
-        feedState = newState;
-
-        feedStateStartNanos =
-                System.nanoTime();
-    }
-
-    private void resetFeedSequence() {
-
-        feedState = FeedState.IDLE;
-        feedStateStartNanos = 0L;
-    }
-
-    private double getFeedStateElapsedMs() {
-
-        if (feedStateStartNanos == 0L) {
-            return 0.0;
-        }
-
-        return (
-                System.nanoTime()
-                        - feedStateStartNanos
-        ) / 1_000_000.0;
-    }
-
-    private long getSafeFeedPulseTimeMs() {
-
-        return Math.max(
-                1L,
-                FEED_PULSE_TIME_MS
-        );
-    }
-
-    private long getSafeRecoveryTimeMs() {
-
-        return Math.max(
-                0L,
-                FEED_RECOVERY_TIME_MS
-        );
-    }
-
-    // =========================================================
     // TELEMETRY
     // =========================================================
 
     private void updateTelemetry(
-            boolean precisionFire,
-            boolean rapidFire
+            boolean fire
     ) {
-
-        String firingMode = "NONE";
-
-        if (rapidFire) {
-
-            firingMode = "RAPID FIRE";
-
-        } else if (precisionFire) {
-
-            firingMode = "PRECISION";
-        }
 
         telemetry.addData(
                 "Shooter Mode",
@@ -459,19 +283,8 @@ public class CompetitionTeleOp extends LinearOpMode {
         );
 
         telemetry.addData(
-                "Firing Mode",
-                firingMode
-        );
-
-        telemetry.addData(
-                "Feed State",
-                feedState.name()
-        );
-
-        telemetry.addData(
-                "Feed Timer",
-                "%.0f ms",
-                getFeedStateElapsedMs()
+                "Firing",
+                fire ? "YES" : "NO"
         );
 
         telemetry.addData(
@@ -519,10 +332,9 @@ public class CompetitionTeleOp extends LinearOpMode {
         telemetry.addLine();
 
         telemetry.addData(
-                "Shoot / Idle",
-                "%.0f / %.0f RPM",
-                Shooter.SHOOT_RPM,
-                Shooter.IDLE_RPM
+                "Shoot RPM",
+                "%.0f",
+                Shooter.SHOOT_RPM
         );
 
         telemetry.addData(
@@ -539,17 +351,9 @@ public class CompetitionTeleOp extends LinearOpMode {
         );
 
         telemetry.addData(
-                "Feed Pulse / Recovery",
-                "%d / %d ms",
-                FEED_PULSE_TIME_MS,
-                FEED_RECOVERY_TIME_MS
-        );
-
-        telemetry.addData(
-                "Intake / Feed / Rapid",
-                "%.2f / %.2f / %.2f",
+                "Intake / Rapid",
+                "%.2f / %.2f",
                 Intake.INTAKE_POWER,
-                Intake.FEED_POWER,
                 Intake.RAPID_FIRE_POWER
         );
 
@@ -589,8 +393,6 @@ public class CompetitionTeleOp extends LinearOpMode {
     // =========================================================
 
     private void safeShutdown() {
-
-        resetFeedSequence();
 
         if (intake != null) {
 

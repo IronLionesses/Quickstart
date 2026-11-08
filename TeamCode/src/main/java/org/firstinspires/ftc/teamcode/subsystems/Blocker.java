@@ -6,11 +6,10 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
 @Configurable
-@TeleOp
 public class Blocker {
 
-    public static double BLOCKER_OPEN_POSITION = 0.0;
-    public static double BLOCKER_CLOSED_POSITION = 0.4;
+    public static double BLOCKER_OPEN_POSITION = 0.2;
+    public static double BLOCKER_CLOSED_POSITION = 0.6;
     private final Servo blockerServo;
 
     public Blocker(HardwareMap hardwareMap) {

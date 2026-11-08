@@ -8,15 +8,13 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 public class Intake {
 
     public static double INTAKE_POWER = 1.0;
-    public static double FEED_POWER = 0.7;
-    public static double RAPID_FIRE_POWER = 1.0;
+    public static double RAPID_FIRE_POWER = 0.5;
     public static double REVERSE_POWER = -1.0;
 
     public enum Mode {
         OFF,
         INTAKE,
         REVERSE,
-        FEED,
         RAPID_FIRE
     }
 
@@ -25,6 +23,10 @@ public class Intake {
 
     private Mode mode = Mode.OFF;
     private double commandedPower = 0.0;
+
+    // Last power actually sent to the motors, so we only
+    // write to the hub when the value changes.
+    private double appliedPower = Double.NaN;
 
     public Intake(HardwareMap hardwareMap) {
         intakeMotor = hardwareMap.get(DcMotor.class, "intakeMotor");
@@ -43,20 +45,21 @@ public class Intake {
     public void offMode()       { mode = Mode.OFF; }
     public void intakeMode()    { mode = Mode.INTAKE; }
     public void reverseMode()   { mode = Mode.REVERSE; }
-    public void feedMode()      { mode = Mode.FEED; }
     public void rapidFireMode() { mode = Mode.RAPID_FIRE; }
 
     public void update() {
         switch (mode) {
             case INTAKE:     commandedPower = INTAKE_POWER; break;
             case REVERSE:    commandedPower = REVERSE_POWER; break;
-            case FEED:       commandedPower = FEED_POWER; break;
             case RAPID_FIRE: commandedPower = RAPID_FIRE_POWER; break;
             default:         commandedPower = 0.0; break;
         }
 
-        intakeMotor.setPower(commandedPower);
-        intakeMotor1.setPower(commandedPower);
+        if (commandedPower != appliedPower) {
+            intakeMotor.setPower(commandedPower);
+            intakeMotor1.setPower(commandedPower);
+            appliedPower = commandedPower;
+        }
     }
 
     public Mode getMode() { return mode; }
