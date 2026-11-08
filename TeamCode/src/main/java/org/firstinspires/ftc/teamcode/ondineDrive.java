@@ -187,7 +187,7 @@ public class CompetitionTeleOp extends LinearOpMode {
         telemetry.addData(
                 "KF / KP",
                 "%.7f / %.7f",
-                Shooter.,
+                Shooter.
                 Shooter.KP
         );
 
