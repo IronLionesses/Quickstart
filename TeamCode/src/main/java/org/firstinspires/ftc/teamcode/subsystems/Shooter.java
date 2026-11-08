@@ -9,7 +9,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 @Configurable
 public class Shooter {
-    public static double SHOOT_RPM = 4000.0;
+    public static double SHOOT_RPM = 3000.0;
     public static double AT_SPEED_TOLERANCE_RPM = 50.0;
 
 
