@@ -12,7 +12,7 @@ public class shooterTest extends LinearOpMode {
     private DcMotorEx shooter;
 
     // Target shooter speed (RPM)
-    private static final double SHOOTER_RPM = 3000;
+    private static final double SHOOTER_RPM = 4000;
 
     // Replace with motor's encoder ticks per revolution
     private static final double TICKS_PER_REV = 28;
