@@ -26,10 +26,12 @@ public class Tuning {
         c.offsetUnits.set(DistanceUnit.INCH);
     });
 
-    {
-        new Tests(hardwareMap -> new Mecanum(hardwareMap, Constants.drivetrainConfig), null, null);
-
+    @Tuner
+    public static Procedure tests() {
+        return new Tests(hardwareMap -> new Mecanum(hardwareMap, Constants.drivetrainConfig), (hardwareMap -> new PinpointLocalizer(hardwareMap, Constants.localizerConfig)), null);
     }
+
+
 
     public static Procedure mecanumTuner() {
         return new MecanumTuner();
