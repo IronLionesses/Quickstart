@@ -4,7 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="bbfd2d12-722e-46b2-a0de-de8078636f24" name="Changes" comment="updated shooter speed on shooter" />
+    <list default="true" id="bbfd2d12-722e-46b2-a0de-de8078636f24" name="Changes" comment="made an experimental teleop">
+      <change beforePath="$PROJECT_DIR$/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/experimenralTeleOp.java" beforeDir="false" afterPath="$PROJECT_DIR$/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/experimentalTeleOp.java" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -14,6 +16,13 @@
     <option name="formatViaClangd" value="false" />
   </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[]" />
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
@@ -47,12 +56,21 @@
       <option name="project" value="LOCAL" />
       <updated>1794126388515</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="made an experimental teleop">
+      <option name="closed" value="true" />
+      <created>1794127089899</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1794127089899</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="updated shooter speed on shooter test" />
     <MESSAGE value="updated shooter speed on shooter" />
-    <option name="LAST_COMMIT_MESSAGE" value="updated shooter speed on shooter" />
+    <MESSAGE value="made an experimental teleop" />
+    <option name="LAST_COMMIT_MESSAGE" value="made an experimental teleop" />
   </component>
 </project>
