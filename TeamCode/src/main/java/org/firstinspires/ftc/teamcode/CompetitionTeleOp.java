@@ -59,7 +59,7 @@ public class CompetitionTeleOp extends LinearOpMode {
                 clearBulkCache();
 
                 boolean fire =
-                        gamepad1.right_trigger_pressed;
+                        gamepad1.right_trigger >0.5;
 
                 boolean intakeRequested =
                         gamepad1.right_bumper;
